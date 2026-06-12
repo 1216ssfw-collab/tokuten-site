@@ -46,7 +46,7 @@ function InfographicCover({ cover }) {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M7 4h10v16l-5-3.5L7 20z" />
         </svg>
-        保存版
+        {c.badge || "保存版"}
       </div>
 
       <div className="cover-hook">
@@ -59,10 +59,10 @@ function InfographicCover({ cover }) {
         </div>
       </div>
 
-      <div className="cover-title">
+      <div className={"cover-title" + (c.titleNum ? "" : " no-num")}>
         <span>{c.titlePre}</span>
-        <span className="num">{c.titleNum}</span>
-        <span className="suf">{c.titlePost}</span>
+        {c.titleNum && <span className="num">{c.titleNum}</span>}
+        {c.titlePost && <span className="suf">{c.titlePost}</span>}
       </div>
 
       <div className="cover-sub">
@@ -185,17 +185,33 @@ function CoverFromPdf({ pdf, label, fallback }) {
 }
 
 function Cover({ item }) {
+  // 1. static cover image wins
   if (item.coverImg) {
+    const fit = item.coverFit || "cover";
     return (
-      <div className="cover-img">
-        <img src={item.coverImg} alt={item.report} loading="lazy" />
+      <div className="cover-img" style={item.coverBg ? { background: item.coverBg } : undefined}>
+        <img
+          src={item.coverImg}
+          alt={item.report}
+          loading="lazy"
+          style={{ objectFit: fit }}
+        />
       </div>
     );
   }
-  if (item.coverPdf || item.pdf) {
-    return <CoverFromPdf pdf={item.coverPdf || item.pdf} label={item.report} fallback={item.cover} />;
+  // 2. explicit opt-in to render a PDF page as the cover
+  if (item.coverPdf) {
+    return <CoverFromPdf pdf={item.coverPdf} label={item.report} fallback={item.cover} />;
   }
-  return <InfographicCover cover={item.cover} />;
+  // 3. a designed infographic cover takes precedence over the download PDF
+  if (item.cover) {
+    return <InfographicCover cover={item.cover} />;
+  }
+  // 4. last resort: render the download PDF's first page
+  if (item.pdf) {
+    return <CoverFromPdf pdf={item.pdf} label={item.report} fallback={item.cover} />;
+  }
+  return null;
 }
 
 window.Cover = Cover;

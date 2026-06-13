@@ -23,7 +23,7 @@ function BenefitCard({ item, btnStyle, onDownload }) {
             className={"dl-btn" + (btnStyle === "solid" ? " solid" : "")}
             onClick={() => onDownload(item)}
           >
-            ダウンロード特典 <IconDownload />
+            {item.ctaLabel || "ダウンロード特典"} <IconDownload />
           </button>
         </div>
       </div>

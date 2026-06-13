@@ -23,9 +23,10 @@ function PdfViewer({ item, onClose }) {
   const [blobUrl, setBlobUrl] = React.useState(null);
 
   const driveId = item.driveId || null;
+  const sheetId = item.sheetId || null;
 
   React.useEffect(() => {
-    if (driveId) return; // Drive files use the embedded preview, no canvas render
+    if (driveId || sheetId) return; // Drive/Sheets use the embedded preview, no canvas render
     let cancelled = false;
     let objUrl = null;
     const lib = window.pdfjsLib;
@@ -74,7 +75,7 @@ function PdfViewer({ item, onClose }) {
       }
     })();
     return () => { cancelled = true; if (objUrl) URL.revokeObjectURL(objUrl); };
-  }, [item.pdf, driveId]);
+  }, [item.pdf, driveId, sheetId]);
 
   const driveDownload = driveId
     ? "https://drive.usercontent.google.com/download?id=" + driveId + "&export=download&confirm=t"
@@ -86,10 +87,15 @@ function PdfViewer({ item, onClose }) {
         <div className="pdf-head">
           <span className="pdf-title">{item.report}</span>
           <div className="pdf-actions">
-            {!driveId && (status === "ready" || status === "done") && progress.total > 0 && (
+            {!driveId && !sheetId && (status === "ready" || status === "done") && progress.total > 0 && (
               <span className="pdf-prog">{progress.done}/{progress.total}p</span>
             )}
-            {driveId ? (
+            {sheetId ? (
+              <a className="pdf-dl" href={"https://docs.google.com/spreadsheets/d/" + sheetId + "/copy"} target="_blank" rel="noopener noreferrer">
+                コピーを作成
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" /></svg>
+              </a>
+            ) : driveId ? (
               <a className="pdf-dl" href={driveDownload} target="_blank" rel="noopener noreferrer">
                 ダウンロード
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12" /><path d="m7 11 5 5 5-5" /><path d="M5 21h14" /></svg>
@@ -105,7 +111,13 @@ function PdfViewer({ item, onClose }) {
             <button className="pdf-x" onClick={onClose} aria-label="閉じる">×</button>
           </div>
         </div>
-        {driveId ? (
+        {sheetId ? (
+          <iframe
+            className="pdf-iframe"
+            src={"https://docs.google.com/spreadsheets/d/" + sheetId + "/preview"}
+            title={item.report}
+          ></iframe>
+        ) : driveId ? (
           <iframe
             className="pdf-iframe"
             src={"https://drive.google.com/file/d/" + driveId + "/preview"}
@@ -115,10 +127,10 @@ function PdfViewer({ item, onClose }) {
         ) : (
           <div className="pdf-scroll" ref={scrollRef}></div>
         )}
-        {!driveId && status === "loading" && (
+        {!driveId && !sheetId && status === "loading" && (
           <div className="pdf-status"><div className="pdf-spin"></div>読み込み中…</div>
         )}
-        {!driveId && status === "error" && (
+        {!driveId && !sheetId && status === "error" && (
           <div className="pdf-status err">
             PDFを読み込めませんでした。<br />時間をおいて再度お試しください。
           </div>
@@ -206,7 +218,7 @@ function App() {
         )}
       </main>
 
-      {dlItem && ((dlItem.pdf || dlItem.driveId)
+      {dlItem && ((dlItem.pdf || dlItem.driveId || dlItem.sheetId)
         ? <PdfViewer item={dlItem} onClose={() => setDlItem(null)} />
         : <DownloadModal item={dlItem} onClose={() => setDlItem(null)} />)}
 
